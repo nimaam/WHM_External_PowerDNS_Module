@@ -12,7 +12,7 @@ try:
         f.write(f"dns_list_zones hook called at {os.popen('date').read().strip()}\n")
         f.write(f"Python path: {sys.path}\n")
         f.write(f"Arguments: {sys.argv}\n")
-        f.write(f"Environment USER: {os.environ.get('USER', 'N/A')}\n")
+        f.write(f"Environment: {dict(os.environ)}\n")
 except:
     pass
 
@@ -34,7 +34,8 @@ try:
 except ImportError as e:
     with open("/var/log/ultahost_dns/ultahost_dns.log", "a") as f:
         f.write(f"ERROR: Failed to import modules: {e}\n")
-    sys.exit(0)
+    # Exit with non-zero to let default DNS handle it
+    sys.exit(1)
 
 
 def main():
@@ -42,65 +43,70 @@ def main():
     logger = PluginLogger.get_logger()
     
     # Always log that hook was called
-    logger.info("DNS listzones hook called")
+    logger.info("DNS listzones hook called - attempting to override API2 response")
 
     # Debug: Log config status
     try:
         config = Config.load()
         logger.info(f"Config loaded: enabled={config.get('enabled')} (type: {type(config.get('enabled'))}), api_url={bool(config.get('api_url'))}, api_key={bool(config.get('api_key'))}")
-        logger.info(f"Config file exists: {Config.CONFIG_FILE.exists()}")
-        logger.info(f"Config file path: {Config.CONFIG_FILE}")
-        if Config.CONFIG_FILE.exists():
-            logger.info(f"Config file readable: {os.access(Config.CONFIG_FILE, os.R_OK)}")
     except Exception as e:
         logger.error(f"Error loading config: {e}", exc_info=True)
+        sys.exit(1)  # Exit with error to let default handle it
 
     is_enabled = Config.is_enabled()
     logger.info(f"Plugin enabled check result: {is_enabled}")
 
     if not is_enabled:
         logger.warning("Ultahost DNS plugin is disabled, skipping hook")
-        # Exit with 0 to let default DNS handle it
-        sys.exit(0)
+        # Exit with non-zero to let default DNS handle it
+        sys.exit(1)
 
     try:
         client = PowerDNSClient()
         zones = client.list_zones()
 
-        # For API2 hooks, we need to output JSON that cPanel can parse
-        # cPanel API2 expects a specific format
+        # For API2 PRE hooks, we need to output the response in a way cPanel can use
+        # Try multiple output methods
+        
+        # Method 1: Output to stdout (standard)
         result = {
             "status": 1,
             "statusmsg": "OK",
             "data": {
-                "zones": []
+                "zone": []  # Note: cPanel expects "zone" not "zones"
             }
         }
 
         for zone in zones:
             zone_name = zone.get("name", "").rstrip(".")
             if zone_name:
-                result["data"]["zones"].append({
+                result["data"]["zone"].append({
                     "domain": zone_name,
                     "zone": zone_name,
+                    "zonefile": f"{zone_name}.db",  # cPanel expects zonefile
                 })
 
-        # Output JSON for API2
-        print(json.dumps(result))
-        logger.info(f"Listed {len(zones)} zones from PowerDNS API")
+        # Output JSON to stdout
+        output = json.dumps(result)
+        print(output, file=sys.stdout)
+        sys.stdout.flush()
         
-        # Exit with 0 to indicate we handled it
+        # Also write to a file that cPanel might read
+        try:
+            with open("/tmp/ultahost_dns_listzones_response.json", "w") as f:
+                f.write(output)
+        except:
+            pass
+
+        logger.info(f"Listed {len(zones)} zones from PowerDNS API, output: {output[:200]}")
+        
+        # For PRE hooks, exit with 0 means "I handled it, use my output"
+        # But cPanel might not use it. Try exiting with 0 anyway.
         sys.exit(0)
 
     except Exception as e:
         logger.error(f"Exception listing zones: {e}", exc_info=True)
-        # Output error in API2 format
-        error_result = {
-            "status": 0,
-            "statusmsg": f"Error: {str(e)}",
-            "data": {}
-        }
-        print(json.dumps(error_result))
+        # Exit with error to let default DNS handle it
         sys.exit(1)
 
 

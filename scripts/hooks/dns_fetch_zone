@@ -114,7 +114,17 @@ def main():
             result["data"]["records"].append(record_data)
 
         # Output JSON for API2
-        print(json.dumps(result))
+        output = json.dumps(result)
+        print(output, file=sys.stdout)
+        sys.stdout.flush()
+        
+        # Also write to file
+        try:
+            with open(f"/tmp/ultahost_dns_fetchzone_{zone_name.replace('.', '_')}.json", "w") as f:
+                f.write(output)
+        except:
+            pass
+        
         logger.info(f"Fetched zone {zone_name} from PowerDNS API with {len(records)} records")
         sys.exit(0)
 
