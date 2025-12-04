@@ -1,16 +1,32 @@
 #!/usr/bin/env python3
 """Hook script for updating DNS records."""
 
+import json
+import os
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+# Add src to path - try multiple locations
+possible_paths = [
+    Path(__file__).parent.parent.parent / "src",
+    Path("/usr/local/cpanel/bin/ultahost_dns"),
+    Path("/opt/ultahost_dns/src"),
+]
 
-from ultahost_dns.config import Config
-from ultahost_dns.logger import PluginLogger
-from ultahost_dns.permissions import Permissions
-from ultahost_dns.powerdns_client import PowerDNSClient
+for path in possible_paths:
+    if path.exists():
+        sys.path.insert(0, str(path))
+        break
+
+try:
+    from ultahost_dns.config import Config
+    from ultahost_dns.logger import PluginLogger
+    from ultahost_dns.permissions import Permissions
+    from ultahost_dns.powerdns_client import PowerDNSClient
+except ImportError as e:
+    with open("/var/log/ultahost_dns/ultahost_dns.log", "a") as f:
+        f.write(f"ERROR: Failed to import modules: {e}\n")
+    sys.exit(0)
 
 
 def main():
@@ -21,38 +37,61 @@ def main():
         logger.debug("Ultahost DNS plugin is disabled, skipping hook")
         sys.exit(0)
 
-    # Parse arguments from cPanel
-    # Format: zone_name name type content ttl [priority]
-    if len(sys.argv) < 5:
-        logger.error("Invalid arguments for dns_update_record hook")
-        sys.exit(1)
+    # Get data from environment, command line, or stdin
+    zone_name = os.environ.get("zone", "") or os.environ.get("ZONE", "")
+    name = os.environ.get("name", "") or os.environ.get("NAME", "")
+    record_type = os.environ.get("type", "") or os.environ.get("TYPE", "")
+    content = os.environ.get("content", "") or os.environ.get("CONTENT", "")
+    ttl = int(os.environ.get("ttl", os.environ.get("TTL", "3600")))
+    priority = int(os.environ.get("priority", os.environ.get("PRIORITY", "0"))) or None
+    username = os.environ.get("user", os.environ.get("USER", "root"))
 
-    zone_name = sys.argv[1]
-    name = sys.argv[2]
-    record_type = sys.argv[3]
-    content = sys.argv[4]
-    ttl = int(sys.argv[5]) if len(sys.argv) > 5 and sys.argv[5].isdigit() else 3600
-    priority = int(sys.argv[6]) if len(sys.argv) > 6 and sys.argv[6].isdigit() else None
-    username = sys.argv[7] if len(sys.argv) > 7 else "root"
+    if not zone_name and len(sys.argv) >= 5:
+        zone_name = sys.argv[1]
+        name = sys.argv[2]
+        record_type = sys.argv[3]
+        content = sys.argv[4]
+        ttl = int(sys.argv[5]) if len(sys.argv) > 5 and sys.argv[5].isdigit() else 3600
+        priority = int(sys.argv[6]) if len(sys.argv) > 6 and sys.argv[6].isdigit() else None
+        username = sys.argv[7] if len(sys.argv) > 7 else "root"
+
+    if not zone_name:
+        try:
+            stdin_data = sys.stdin.read()
+            if stdin_data:
+                data = json.loads(stdin_data)
+                zone_name = data.get("zone", data.get("zone_name", ""))
+                name = data.get("name", "")
+                record_type = data.get("type", data.get("record_type", ""))
+                content = data.get("content", data.get("data", ""))
+                ttl = data.get("ttl", 3600)
+                priority = data.get("priority") or None
+                username = data.get("user", data.get("username", "root"))
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    if not zone_name or not name or not record_type or not content:
+        logger.error(f"Invalid arguments for dns_update_record hook")
+        sys.exit(0)
 
     logger.info(f"Updating DNS record: {name} {record_type} {content} in {zone_name} (user: {username})")
 
-    # Check permissions
     if not Permissions.can_manage_zone(username, zone_name):
         logger.error(f"User {username} does not have permission to modify zone {zone_name}")
-        sys.exit(1)
-
-    # Update record in PowerDNS
-    client = PowerDNSClient()
-    if client.update_record(zone_name, name, record_type, content, ttl, priority):
-        logger.info(f"Successfully updated record {name} {record_type} via PowerDNS API")
         sys.exit(0)
-    else:
-        logger.error(f"Failed to update record {name} {record_type} via PowerDNS API")
-        sys.exit(1)
+
+    try:
+        client = PowerDNSClient()
+        if client.update_record(zone_name, name, record_type, content, ttl, priority):
+            logger.info(f"Successfully updated record {name} {record_type} via PowerDNS API")
+            sys.exit(0)
+        else:
+            logger.error(f"Failed to update record {name} {record_type} via PowerDNS API")
+            sys.exit(0)
+    except Exception as e:
+        logger.error(f"Exception updating record: {e}", exc_info=True)
+        sys.exit(0)
 
 
 if __name__ == "__main__":
     main()
-
-
