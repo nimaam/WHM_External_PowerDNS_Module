@@ -28,7 +28,17 @@ class PowerDNSClient:
         params: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Make API request."""
-        url = f"{self.api_url.rstrip('/')}/api/v1/servers/localhost{endpoint}"
+        # Construct URL - endpoint should already include /api/v1/servers/localhost if needed
+        # or we construct it here
+        if endpoint.startswith("/api/v1"):
+            # Full endpoint provided
+            url = f"{self.api_url.rstrip('/')}{endpoint}"
+        elif endpoint.startswith("/servers/"):
+            # Endpoint starts with /servers/
+            url = f"{self.api_url.rstrip('/')}/api/v1{endpoint}"
+        else:
+            # Relative endpoint, add /api/v1/servers/localhost
+            url = f"{self.api_url.rstrip('/')}/api/v1/servers/localhost{endpoint}"
 
         try:
             self.logger.debug(f"PowerDNS API {method} request: {url}")
@@ -226,7 +236,8 @@ class PowerDNSClient:
     def test_connection(self) -> bool:
         """Test connection to PowerDNS API."""
         try:
-            self._request("GET", "/servers/localhost")
+            # Test with /servers endpoint (list all servers)
+            self._request("GET", "/api/v1/servers")
             return True
         except requests.exceptions.RequestException:
             return False
