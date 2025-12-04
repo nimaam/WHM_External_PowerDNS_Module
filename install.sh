@@ -33,11 +33,18 @@ cd "$SCRIPT_DIR"
 pip3 install -e . --quiet
 
 # Install custom API2 module (if it exists)
+# Note: Overriding Api2::Dns requires careful placement
 if [ -f "$SCRIPT_DIR/src/ultahost_dns/api2/Dns.pm" ]; then
     echo -e "${YELLOW}Installing custom API2 module...${NC}"
-    mkdir -p /usr/local/cpanel/Cpanel/API
-    cp "$SCRIPT_DIR/src/ultahost_dns/api2/Dns.pm" /usr/local/cpanel/Cpanel/API/UltahostDns.pm 2>/dev/null || true
+    mkdir -p /usr/local/cpanel/Cpanel/API2
+    # Backup original if it exists and we haven't already
+    if [ -f "/usr/local/cpanel/Cpanel/API2/Dns.pm" ] && [ ! -f "/usr/local/cpanel/Cpanel/API2/Dns.pm.orig" ]; then
+        cp /usr/local/cpanel/Cpanel/API2/Dns.pm /usr/local/cpanel/Cpanel/API2/Dns.pm.orig
+        echo -e "${YELLOW}Backed up original Dns.pm to Dns.pm.orig${NC}"
+    fi
+    cp "$SCRIPT_DIR/src/ultahost_dns/api2/Dns.pm" /usr/local/cpanel/Cpanel/API2/Dns.pm 2>/dev/null || true
     echo -e "${GREEN}Custom API2 module installed${NC}"
+    echo -e "${YELLOW}WARNING: This overrides the default Api2::Dns module. Use with caution.${NC}"
 fi
 
 # Create directories

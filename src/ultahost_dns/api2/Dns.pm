@@ -1,10 +1,10 @@
-package Api2::UltahostDns::Dns;
+package Api2::Dns;
 
 use strict;
 use warnings;
 
-# Custom API2 module for DNS operations via PowerDNS API
-# This replaces the default Api2::Dns module when plugin is enabled
+# Override default Api2::Dns module for PowerDNS API
+# This module extends/replaces the default DNS API2 module
 
 use Cpanel::JSON ();
 
@@ -33,15 +33,25 @@ sub _is_enabled {
 sub listzones {
     my ($self, $api, $opts) = @_;
     
-    return unless _is_enabled();
+    # Only override if plugin is enabled
+    unless (_is_enabled()) {
+        # Call parent method if it exists
+        if (my $parent = $self->can('SUPER::listzones')) {
+            return $self->$parent($api, $opts);
+        }
+        return;
+    }
     
     # Call our Python script to list zones
     my $output = `python3 /usr/local/cpanel/scripts/ultahost_dns/dns_list_zones 2>&1`;
     my $result = eval { Cpanel::JSON::decode_json($output) };
     
-    if ($result && $result->{status} == 1) {
+    if ($result && $result->{status} == 1 && $result->{data}->{zone}) {
+        # Return in cPanel API2 format
         return {
-            data => $result->{data}->{zones} || [],
+            data => {
+                zone => $result->{data}->{zone} || [],
+            },
         };
     }
     
@@ -51,7 +61,14 @@ sub listzones {
 sub fetchzone {
     my ($self, $api, $opts) = @_;
     
-    return unless _is_enabled();
+    # Only override if plugin is enabled
+    unless (_is_enabled()) {
+        # Call parent method if it exists
+        if (my $parent = $self->can('SUPER::fetchzone')) {
+            return $self->$parent($api, $opts);
+        }
+        return;
+    }
     
     my $zone = $opts->{zone} || $opts->{domain};
     return unless $zone;
