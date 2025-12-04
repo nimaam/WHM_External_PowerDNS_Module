@@ -118,7 +118,13 @@ class PowerDNSClient:
         """List all zones."""
         try:
             response = self._request("GET", "/zones")
-            return response.get("zones", [])
+            # PowerDNS API returns a list directly, not a dict with "zones" key
+            if isinstance(response, list):
+                return response
+            # Fallback: if it's a dict with "zones" key
+            if isinstance(response, dict):
+                return response.get("zones", [])
+            return []
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Failed to list zones: {e}")
             return []
