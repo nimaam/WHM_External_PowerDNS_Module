@@ -4,14 +4,32 @@
 
 use strict;
 use warnings;
-use Cpanel::JSON ();
-use CGI qw(:standard);
+
+# Enable error reporting for debugging
+BEGIN {
+    $SIG{__DIE__} = sub {
+        print "Content-Type: text/html\n\n";
+        print "<html><body><h1>Error</h1><pre>@_</pre></body></html>";
+        exit;
+    };
+}
+
+eval {
+    use Cpanel::JSON ();
+    use CGI qw(:standard);
+    1;
+} or do {
+    print "Content-Type: text/html\n\n";
+    print "<html><body><h1>Error</h1><p>Failed to load required modules: $@</p></body></html>";
+    exit;
+};
 
 my $q = CGI->new;
 my $config_file = '/var/cpanel/ultahost_dns_config.json';
 
-# Check root access
-if ($ENV{'REMOTE_USER'} ne 'root') {
+# Check root access - use multiple methods for compatibility
+my $user = $ENV{'REMOTE_USER'} || $ENV{'USER'} || '';
+if ($user ne 'root') {
     print $q->header(-status => '403 Forbidden');
     print "Access denied. Root access required.";
     exit;
@@ -133,7 +151,7 @@ print <<HTML;
             
             <div class="form-group">
                 <label>
-                    <input type="checkbox" name="enabled" value="1" $config->{enabled} ? 'checked' : ''>
+                    <input type="checkbox" name="enabled" value="1"@{[$config->{enabled} ? ' checked' : '']}>
                     Enable Plugin
                 </label>
                 <div class="help-text">When enabled, this plugin will replace the default DNS module for all DNS operations</div>

@@ -102,8 +102,15 @@ chmod 644 /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json
 chown root:root /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json
 
 # Register plugin using register_appconfig
+# First copy conf file to /var/cpanel/apps/ as that's where it should be
 if [ -f "/usr/local/cpanel/bin/register_appconfig" ]; then
-    /usr/local/cpanel/bin/register_appconfig /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
+    # Copy conf to /var/cpanel/apps/
+    cp /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf /var/cpanel/apps/ultahost_dns.conf
+    chmod 600 /var/cpanel/apps/ultahost_dns.conf
+    chown root:root /var/cpanel/apps/ultahost_dns.conf
+    
+    # Register from /var/cpanel/apps/
+    /usr/local/cpanel/bin/register_appconfig /var/cpanel/apps/ultahost_dns.conf
     echo -e "${GREEN}Plugin registered using register_appconfig${NC}"
 fi
 
