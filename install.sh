@@ -70,12 +70,13 @@ cat > /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json << 'EOF
     "name": "Ultahost DNS",
     "version": "1.0.0",
     "description": "PowerDNS v4 API integration for WHM/cPanel DNS management",
-    "icon": "ultahost_dns.png",
     "category": "dns",
-    "url": "/cgi/ultahost_dns_settings.cgi",
-    "requires_root": true
+    "url": "/cgi/ultahost_dns/ultahost_dns_settings.cgi",
+    "requires_root": 1
 }
 EOF
+chmod 644 /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json
+chown root:root /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json
 
 # Register hooks using cPanel hook system
 echo -e "${YELLOW}Registering DNS hooks...${NC}"
