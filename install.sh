@@ -96,6 +96,8 @@ url=/cgi/ultahost_dns/ultahost_dns_settings.cgi
 acls=all
 displayname=Ultahost DNS
 description=PowerDNS v4 API integration for WHM/cPanel DNS management
+entryurl=ultahost_dns/ultahost_dns_settings.cgi
+target=_self
 EOF
 fi
 
@@ -108,6 +110,8 @@ url=/cgi/ultahost_dns/ultahost_dns_settings.cgi
 acls=all
 displayname=Ultahost DNS
 description=PowerDNS v4 API integration for WHM/cPanel DNS management
+entryurl=ultahost_dns/ultahost_dns_settings.cgi
+target=_self
 EOF
 chmod 644 /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
 chown root:root /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
