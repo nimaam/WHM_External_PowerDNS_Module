@@ -40,7 +40,8 @@ def main():
         logger.error(f"User {username} does not have permission to create zone {zone_name}")
         sys.exit(1)
 
-    # Create zone in PowerDNS
+    # Create zone in PowerDNS ONLY (not in local DNS)
+    # Since we're using PRE hook, we handle it completely
     client = PowerDNSClient()
     if client.create_zone(zone_name):
         logger.info(f"Successfully created zone {zone_name} via PowerDNS API")
@@ -52,14 +53,13 @@ def main():
         except Exception as e:
             logger.warning(f"Failed to apply DNS template {template_name}: {e}")
 
-        # Note: Zone is already created in cPanel local DNS by cPanel itself
-        # We just sync it to PowerDNS. The zone will appear in DNS Zone Manager
-        # because cPanel creates it locally first, then our hook syncs to PowerDNS.
+        # Exit with success - this prevents default DNS from creating the zone
+        # The zone exists only in PowerDNS
         sys.exit(0)
     else:
         logger.error(f"Failed to create zone {zone_name} via PowerDNS API")
-        # Don't fail the zone creation in cPanel, just log the error
-        sys.exit(0)
+        # Exit with error to let default DNS handle it (fallback)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -39,13 +39,20 @@ def main():
         logger.error(f"User {username} does not have permission to modify zone {zone_name}")
         sys.exit(1)
 
-    # Delete record from PowerDNS
-    client = PowerDNSClient()
-    if client.delete_record(zone_name, name, record_type):
-        logger.info(f"Successfully deleted record {name} {record_type} via PowerDNS API")
-        sys.exit(0)
-    else:
-        logger.error(f"Failed to delete record {name} {record_type} via PowerDNS API")
+    # Delete record from PowerDNS ONLY (not from local DNS)
+    # Since we're using PRE hook, we handle it completely
+    try:
+        client = PowerDNSClient()
+        if client.delete_record(zone_name, name, record_type):
+            logger.info(f"Successfully deleted record {name} {record_type} via PowerDNS API")
+            # Exit with success - this prevents default DNS from deleting
+            sys.exit(0)
+        else:
+            logger.error(f"Failed to delete record {name} {record_type} via PowerDNS API")
+            # Exit with error to let default DNS handle it (fallback)
+            sys.exit(1)
+    except Exception as e:
+        logger.error(f"Exception deleting record: {e}", exc_info=True)
         sys.exit(1)
 
 

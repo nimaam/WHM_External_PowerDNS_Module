@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""Hook script for listing DNS zones - returns zones from PowerDNS API."""
+
+import json
+import os
+import sys
+from pathlib import Path
+
+# Add src to path
+possible_paths = [
+    Path(__file__).parent.parent.parent / "src",
+    Path("/usr/local/cpanel/bin/ultahost_dns"),
+]
+
+for path in possible_paths:
+    if path.exists():
+        sys.path.insert(0, str(path))
+        break
+
+try:
+    from ultahost_dns.config import Config
+    from ultahost_dns.logger import PluginLogger
+    from ultahost_dns.powerdns_client import PowerDNSClient
+except ImportError as e:
+    with open("/var/log/ultahost_dns/ultahost_dns.log", "a") as f:
+        f.write(f"ERROR: Failed to import modules: {e}\n")
+    sys.exit(0)
+
+
+def main():
+    """Handle DNS zone listing."""
+    logger = PluginLogger.get_logger()
+
+    if not Config.is_enabled():
+        logger.debug("Ultahost DNS plugin is disabled, skipping hook")
+        sys.exit(0)
+
+    try:
+        client = PowerDNSClient()
+        zones = client.list_zones()
+
+        # Output zones in a format cPanel can understand
+        # This will be read by cPanel's DNS module
+        for zone in zones:
+            zone_name = zone.get("name", "").rstrip(".")
+            if zone_name:
+                print(zone_name)
+
+        logger.info(f"Listed {len(zones)} zones from PowerDNS API")
+        sys.exit(0)
+
+    except Exception as e:
+        logger.error(f"Exception listing zones: {e}", exc_info=True)
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
+

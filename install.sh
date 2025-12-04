@@ -172,46 +172,63 @@ fi
 echo -e "${YELLOW}Registering DNS hooks...${NC}"
 
 # Create hook registration JSON
+# Using PRE hooks to intercept BEFORE default DNS operations
 cat > /tmp/ultahost_dns_hooks.json << 'HOOKS_EOF'
 {
     "hooks": [
         {
+            "hook": "Api2::Dns::listzones",
+            "category": "Whostmgr",
+            "event": "pre",
+            "stage": "pre",
+            "exectype": "script",
+            "script": "/usr/local/cpanel/scripts/ultahost_dns/dns_list_zones"
+        },
+        {
+            "hook": "Api2::Dns::fetchzone",
+            "category": "Whostmgr",
+            "event": "pre",
+            "stage": "pre",
+            "exectype": "script",
+            "script": "/usr/local/cpanel/scripts/ultahost_dns/dns_fetch_zone"
+        },
+        {
             "hook": "Api2::Dns::create_zone",
             "category": "Whostmgr",
-            "event": "post",
-            "stage": "post",
+            "event": "pre",
+            "stage": "pre",
             "exectype": "script",
             "script": "/usr/local/cpanel/scripts/ultahost_dns/dns_create_zone"
         },
         {
             "hook": "Api2::Dns::delete_zone",
             "category": "Whostmgr",
-            "event": "post",
-            "stage": "post",
+            "event": "pre",
+            "stage": "pre",
             "exectype": "script",
             "script": "/usr/local/cpanel/scripts/ultahost_dns/dns_delete_zone"
         },
         {
             "hook": "Api2::Dns::add_record",
             "category": "Whostmgr",
-            "event": "post",
-            "stage": "post",
+            "event": "pre",
+            "stage": "pre",
             "exectype": "script",
             "script": "/usr/local/cpanel/scripts/ultahost_dns/dns_add_record"
         },
         {
             "hook": "Api2::Dns::delete_record",
             "category": "Whostmgr",
-            "event": "post",
-            "stage": "post",
+            "event": "pre",
+            "stage": "pre",
             "exectype": "script",
             "script": "/usr/local/cpanel/scripts/ultahost_dns/dns_delete_record"
         },
         {
             "hook": "Api2::Dns::edit_record",
             "category": "Whostmgr",
-            "event": "post",
-            "stage": "post",
+            "event": "pre",
+            "stage": "pre",
             "exectype": "script",
             "script": "/usr/local/cpanel/scripts/ultahost_dns/dns_update_record"
         }
