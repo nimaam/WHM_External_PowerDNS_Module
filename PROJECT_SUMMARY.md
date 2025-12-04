@@ -131,7 +131,7 @@ Test API connection:
 ## Development
 
 ### Code Style
-- Follows Python 3.12+ standards
+- Follows Python 3.9+ standards
 - Uses ruff for linting and formatting
 - Line length: 100 characters
 - Double quotes for strings

@@ -31,7 +31,7 @@ A WHM/cPanel plugin that replaces the default DNS module with PowerDNS v4 API in
 ## Requirements
 
 - cPanel/WHM 130.x.x
-- Python 3.12+
+- Python 3.9+
 - PowerDNS v4 API access
 - Root access to WHM
 

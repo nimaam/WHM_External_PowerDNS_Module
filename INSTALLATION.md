@@ -4,7 +4,7 @@
 
 - cPanel/WHM 130.x.x installed
 - Root access to the server
-- Python 3.12 or higher
+- Python 3.9 or higher
 - PowerDNS v4 API server accessible
 - PowerDNS v4 API key
 
