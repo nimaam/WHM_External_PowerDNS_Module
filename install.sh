@@ -246,12 +246,47 @@ cat > /tmp/ultahost_dns_hooks.json << 'HOOKS_EOF'
 }
 HOOKS_EOF
 
-# Register hooks
+# Register hooks individually using manage_hooks
 if [ -f "/usr/local/cpanel/bin/manage_hooks" ]; then
-    /usr/local/cpanel/bin/manage_hooks add file /tmp/ultahost_dns_hooks.json 2>/dev/null || {
-        echo -e "${YELLOW}Note: Hook registration may need manual configuration${NC}"
-        echo -e "${YELLOW}Hooks are installed at: /usr/local/cpanel/scripts/ultahost_dns/${NC}"
-    }
+    echo -e "${YELLOW}Registering DNS hooks individually...${NC}"
+    
+    # Register listzones hook
+    /usr/local/cpanel/bin/manage_hooks add script /usr/local/cpanel/scripts/ultahost_dns/dns_list_zones \
+        --category=Whostmgr --event=Api2::Dns::listzones --stage=pre 2>/dev/null || true
+    
+    # Register fetchzone hook
+    /usr/local/cpanel/bin/manage_hooks add script /usr/local/cpanel/scripts/ultahost_dns/dns_fetch_zone \
+        --category=Whostmgr --event=Api2::Dns::fetchzone --stage=pre 2>/dev/null || true
+    
+    # Register create_zone hook
+    /usr/local/cpanel/bin/manage_hooks add script /usr/local/cpanel/scripts/ultahost_dns/dns_create_zone \
+        --category=Whostmgr --event=Api2::Dns::create_zone --stage=pre 2>/dev/null || true
+    
+    # Register delete_zone hook
+    /usr/local/cpanel/bin/manage_hooks add script /usr/local/cpanel/scripts/ultahost_dns/dns_delete_zone \
+        --category=Whostmgr --event=Api2::Dns::delete_zone --stage=pre 2>/dev/null || true
+    
+    # Register add_record hook
+    /usr/local/cpanel/bin/manage_hooks add script /usr/local/cpanel/scripts/ultahost_dns/dns_add_record \
+        --category=Whostmgr --event=Api2::Dns::add_record --stage=pre 2>/dev/null || true
+    
+    # Register delete_record hook
+    /usr/local/cpanel/bin/manage_hooks add script /usr/local/cpanel/scripts/ultahost_dns/dns_delete_record \
+        --category=Whostmgr --event=Api2::Dns::delete_record --stage=pre 2>/dev/null || true
+    
+    # Register edit_record hook
+    /usr/local/cpanel/bin/manage_hooks add script /usr/local/cpanel/scripts/ultahost_dns/dns_update_record \
+        --category=Whostmgr --event=Api2::Dns::edit_record --stage=pre 2>/dev/null || true
+    
+    echo -e "${GREEN}Hooks registered${NC}"
+    
+    # Verify hooks
+    if /usr/local/cpanel/bin/manage_hooks list 2>/dev/null | grep -q ultahost; then
+        echo -e "${GREEN}Hook registration verified${NC}"
+    else
+        echo -e "${YELLOW}Warning: Hooks may not be visible in list. They should still work.${NC}"
+    fi
+    
     rm -f /tmp/ultahost_dns_hooks.json
 else
     echo -e "${YELLOW}Warning: manage_hooks not found. Hooks may need manual registration.${NC}"
