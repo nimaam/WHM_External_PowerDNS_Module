@@ -18,10 +18,31 @@ fi
 
 echo -e "${GREEN}Fixing WHM Plugin Menu Registration...${NC}"
 
-# Ensure directory exists
-mkdir -p /usr/local/cpanel/whostmgr/docroot/addon_plugins
+# Ensure /var/cpanel/apps is a directory, not a file
+if [ -f "/var/cpanel/apps" ]; then
+    echo -e "${YELLOW}Removing /var/cpanel/apps file and creating directory...${NC}"
+    rm -f /var/cpanel/apps
+    mkdir -p /var/cpanel/apps
+    chmod 755 /var/cpanel/apps
+fi
 
-# Create/Update plugin registration
+# Ensure directories exist
+mkdir -p /usr/local/cpanel/whostmgr/docroot/addon_plugins
+mkdir -p /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns
+
+# Create .conf file for register_appconfig
+cat > /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf << 'EOF'
+name=Ultahost DNS
+version=1.0.0
+description=PowerDNS v4 API integration for WHM/cPanel DNS management
+category=dns
+url=/cgi/ultahost_dns/ultahost_dns_settings.cgi
+requires_root=1
+EOF
+chmod 644 /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
+chown root:root /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
+
+# Also create JSON file for compatibility
 cat > /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json << 'EOF'
 {
     "name": "Ultahost DNS",
@@ -32,10 +53,15 @@ cat > /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json << 'EOF
     "requires_root": 1
 }
 EOF
-
-# Set correct permissions
 chmod 644 /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json
 chown root:root /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json
+
+# Register plugin using register_appconfig
+if [ -f "/usr/local/cpanel/bin/register_appconfig" ]; then
+    echo -e "${YELLOW}Registering plugin with register_appconfig...${NC}"
+    /usr/local/cpanel/bin/register_appconfig /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
+    echo -e "${GREEN}Plugin registered${NC}"
+fi
 
 # Verify CGI script exists
 if [ ! -f "/usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_settings.cgi" ]; then
@@ -51,6 +77,13 @@ if [ ! -f "/usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_sett
     fi
 fi
 
+# Clear plugins cache
+if [ -f "/var/cpanel/pluginscache.yaml" ]; then
+    echo -e "${YELLOW}Clearing plugins cache...${NC}"
+    rm -f /var/cpanel/pluginscache.yaml
+    echo -e "${GREEN}Plugins cache cleared${NC}"
+fi
+
 # Verify JSON syntax
 if command -v python3 &> /dev/null; then
     python3 -m json.tool /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json > /dev/null
@@ -62,13 +95,19 @@ if command -v python3 &> /dev/null; then
     fi
 fi
 
+# Restart cPanel service
+echo -e "${YELLOW}Restarting cPanel service...${NC}"
+/scripts/restartsrv_cpsrvd > /dev/null 2>&1 || true
+
 echo -e "${GREEN}Plugin registration fixed!${NC}"
 echo -e "${YELLOW}Next steps:${NC}"
-echo -e "1. Clear your browser cache"
-echo -e "2. Log out and log back into WHM"
-echo -e "3. The plugin should appear in: Plugins > Ultahost DNS"
+echo -e "1. Wait 10-15 seconds for cPanel service to restart"
+echo -e "2. Clear your browser cache completely"
+echo -e "3. Log out and log back into WHM"
+echo -e "4. The plugin should appear in: Plugins > Ultahost DNS"
 echo -e ""
-echo -e "If it still doesn't appear, try:"
-echo -e "  /scripts/restartsrv_httpd"
-echo -e "  /scripts/rebuildhttpdconf"
+echo -e "If it still doesn't appear, check:"
+echo -e "  - File exists: ls -la /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf"
+echo -e "  - Check logs: tail -f /usr/local/cpanel/logs/error_log"
+echo -e "  - Verify registration: /usr/local/cpanel/bin/register_appconfig --list | grep ultahost"
 

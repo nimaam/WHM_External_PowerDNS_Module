@@ -65,6 +65,28 @@ chmod 755 /usr/local/cpanel/bin/ultahost_dns/*.py
 
 # Create WHM plugin registration
 echo -e "${YELLOW}Registering WHM plugin...${NC}"
+
+# Ensure /var/cpanel/apps is a directory, not a file
+if [ -f "/var/cpanel/apps" ]; then
+    echo -e "${YELLOW}Removing /var/cpanel/apps file and creating directory...${NC}"
+    rm -f /var/cpanel/apps
+    mkdir -p /var/cpanel/apps
+fi
+
+# Create .conf file for register_appconfig
+cat > /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf << 'EOF'
+name=Ultahost DNS
+version=1.0.0
+description=PowerDNS v4 API integration for WHM/cPanel DNS management
+category=dns
+url=/cgi/ultahost_dns/ultahost_dns_settings.cgi
+requires_root=1
+EOF
+chmod 644 /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
+chown root:root /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
+
+# Also create JSON file for compatibility
+mkdir -p /usr/local/cpanel/whostmgr/docroot/addon_plugins
 cat > /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json << 'EOF'
 {
     "name": "Ultahost DNS",
@@ -77,6 +99,18 @@ cat > /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json << 'EOF
 EOF
 chmod 644 /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json
 chown root:root /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json
+
+# Register plugin using register_appconfig
+if [ -f "/usr/local/cpanel/bin/register_appconfig" ]; then
+    /usr/local/cpanel/bin/register_appconfig /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
+    echo -e "${GREEN}Plugin registered using register_appconfig${NC}"
+fi
+
+# Clear plugins cache
+if [ -f "/var/cpanel/pluginscache.yaml" ]; then
+    rm -f /var/cpanel/pluginscache.yaml
+    echo -e "${GREEN}Plugins cache cleared${NC}"
+fi
 
 # Register hooks using cPanel hook system
 echo -e "${YELLOW}Registering DNS hooks...${NC}"
@@ -161,12 +195,19 @@ EOF
     chmod 600 /var/cpanel/ultahost_dns_config.json
 fi
 
+# Restart cPanel service to refresh plugin list
+echo -e "${YELLOW}Restarting cPanel service to refresh plugins...${NC}"
+/scripts/restartsrv_cpsrvd > /dev/null 2>&1 || true
+
 echo -e "${GREEN}Installation completed successfully!${NC}"
 echo -e "${YELLOW}Next steps:${NC}"
-echo -e "1. Log in to WHM as root"
-echo -e "2. Navigate to Plugins > Ultahost DNS Settings"
-echo -e "3. Configure your PowerDNS v4 API URL and API Key"
-echo -e "4. Enable the plugin"
+echo -e "1. Wait a few seconds for cPanel service to restart"
+echo -e "2. Clear your browser cache"
+echo -e "3. Log out and log back into WHM"
+echo -e "4. Navigate to Plugins > Ultahost DNS"
+echo -e "5. Configure your PowerDNS v4 API URL and API Key"
+echo -e "6. Enable the plugin"
 echo -e ""
+echo -e "If the menu still doesn't appear, run: sudo ./fix_plugin_menu.sh"
 echo -e "Logs are available at: /var/log/ultahost_dns/ultahost_dns.log"
 
