@@ -32,6 +32,14 @@ echo -e "${YELLOW}Installing Python package...${NC}"
 cd "$SCRIPT_DIR"
 pip3 install -e . --quiet
 
+# Install custom API2 module (if it exists)
+if [ -f "$SCRIPT_DIR/src/ultahost_dns/api2/Dns.pm" ]; then
+    echo -e "${YELLOW}Installing custom API2 module...${NC}"
+    mkdir -p /usr/local/cpanel/Cpanel/API
+    cp "$SCRIPT_DIR/src/ultahost_dns/api2/Dns.pm" /usr/local/cpanel/Cpanel/API/UltahostDns.pm 2>/dev/null || true
+    echo -e "${GREEN}Custom API2 module installed${NC}"
+fi
+
 # Create directories
 echo -e "${YELLOW}Creating directories...${NC}"
 mkdir -p /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns
