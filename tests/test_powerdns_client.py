@@ -112,3 +112,4 @@ class TestPowerDNSClient:
 
         assert result is False
 
+

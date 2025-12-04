@@ -231,3 +231,4 @@ class PowerDNSClient:
         except requests.exceptions.RequestException:
             return False
 
+

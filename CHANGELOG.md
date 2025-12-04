@@ -25,3 +25,4 @@ All notable changes to the Ultahost DNS Plugin will be documented in this file.
 - Error logging and debugging support
 - Compatible with cPanel/WHM 130.x.x
 
+

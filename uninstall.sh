@@ -46,3 +46,4 @@ fi
 
 echo -e "${GREEN}Uninstallation completed!${NC}"
 
+

@@ -111,3 +111,4 @@ class DNSTemplate:
         cls.logger.info(f"Applied {applied}/{len(records)} template records to zone {zone_name}")
         return applied == len(records)
 
+

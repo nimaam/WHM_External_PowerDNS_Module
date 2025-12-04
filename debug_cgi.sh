@@ -33,3 +33,4 @@ echo "=== Testing CGI Script Directly ==="
 cd /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/
 REMOTE_USER=root perl ultahost_dns_settings.cgi 2>&1 | head -20
 
+

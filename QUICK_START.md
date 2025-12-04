@@ -56,3 +56,4 @@ cat /var/cpanel/ultahost_dns_config.json
 sudo ./uninstall.sh
 ```
 
+

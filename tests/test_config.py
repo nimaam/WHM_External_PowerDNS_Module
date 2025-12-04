@@ -84,3 +84,4 @@ class TestConfig:
                 assert config["enabled"] is True
                 assert config["api_key"] == ""
 
+

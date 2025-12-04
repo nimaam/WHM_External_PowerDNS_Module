@@ -74,3 +74,4 @@ class PluginLogger:
         logger = cls.get_logger()
         logger.warning(message)
 
+

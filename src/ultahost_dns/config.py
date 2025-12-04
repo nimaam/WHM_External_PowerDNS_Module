@@ -76,3 +76,4 @@ class Config:
             config["enabled"] = bool(enabled)
         return cls.save(config)
 
+

@@ -44,14 +44,25 @@ mkdir -p /var/cpanel
 
 # Copy WHM interface
 echo -e "${YELLOW}Installing WHM interface...${NC}"
-cp -r "$SCRIPT_DIR/whm/cgi/"* /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/
-chmod 755 /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/*.cgi
+cp -r "$SCRIPT_DIR/whm/cgi/"* /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ 2>/dev/null || true
 
-# Use simple interface as primary (more compatible)
-if [ -f "/usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_settings_simple.cgi" ]; then
+# Use the main settings CGI (not the simple one)
+if [ -f "$SCRIPT_DIR/whm/cgi/ultahost_dns_settings.cgi" ]; then
+    cp "$SCRIPT_DIR/whm/cgi/ultahost_dns_settings.cgi" /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_settings.cgi
+    chmod 755 /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_settings.cgi
+    chown root:root /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_settings.cgi
+    echo -e "${GREEN}Main CGI script installed${NC}"
+elif [ -f "/usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_settings_simple.cgi" ]; then
     cp /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_settings_simple.cgi \
        /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_settings.cgi
+    chmod 755 /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_settings.cgi
+    chown root:root /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns_settings.cgi
+    echo -e "${GREEN}Using simple CGI script${NC}"
 fi
+
+# Ensure all CGI files have correct permissions
+chmod 755 /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/*.cgi 2>/dev/null || true
+chown root:root /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/*.cgi 2>/dev/null || true
 
 # Copy hook scripts
 echo -e "${YELLOW}Installing hook scripts...${NC}"
@@ -73,7 +84,22 @@ if [ -f "/var/cpanel/apps" ]; then
     mkdir -p /var/cpanel/apps
 fi
 
-# Create .conf file for register_appconfig
+# Create .conf file for register_appconfig (both in cgi dir and apps dir)
+# First, create in source location if it doesn't exist
+if [ ! -f "$SCRIPT_DIR/var/cpanel/apps/ultahost_dns.conf" ]; then
+    mkdir -p "$SCRIPT_DIR/var/cpanel/apps"
+    cat > "$SCRIPT_DIR/var/cpanel/apps/ultahost_dns.conf" << 'EOF'
+name=ultahost_dns
+service=whostmgr
+user=root
+url=/cgi/ultahost_dns/ultahost_dns_settings.cgi
+acls=all
+displayname=Ultahost DNS
+description=PowerDNS v4 API integration for WHM/cPanel DNS management
+EOF
+fi
+
+# Copy to cgi directory (for reference)
 cat > /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf << 'EOF'
 name=ultahost_dns
 service=whostmgr
@@ -102,16 +128,33 @@ chmod 644 /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json
 chown root:root /usr/local/cpanel/whostmgr/docroot/addon_plugins/ultahost_dns.json
 
 # Register plugin using register_appconfig
-# First copy conf file to /var/cpanel/apps/ as that's where it should be
+# The appconfig file should be in /var/cpanel/apps/ directory
 if [ -f "/usr/local/cpanel/bin/register_appconfig" ]; then
-    # Copy conf to /var/cpanel/apps/
-    cp /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf /var/cpanel/apps/ultahost_dns.conf
+    # Ensure /var/cpanel/apps/ exists
+    mkdir -p /var/cpanel/apps
+    chmod 755 /var/cpanel/apps
+    
+    # Copy conf file from source to /var/cpanel/apps/
+    if [ -f "$SCRIPT_DIR/var/cpanel/apps/ultahost_dns.conf" ]; then
+        cp "$SCRIPT_DIR/var/cpanel/apps/ultahost_dns.conf" /var/cpanel/apps/ultahost_dns.conf
+    else
+        # Create it if it doesn't exist in source
+        cp /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf /var/cpanel/apps/ultahost_dns.conf
+    fi
+    
     chmod 600 /var/cpanel/apps/ultahost_dns.conf
     chown root:root /var/cpanel/apps/ultahost_dns.conf
     
-    # Register from /var/cpanel/apps/
+    # Register from /var/cpanel/apps/ (this is the standard location)
     /usr/local/cpanel/bin/register_appconfig /var/cpanel/apps/ultahost_dns.conf
     echo -e "${GREEN}Plugin registered using register_appconfig${NC}"
+    
+    # Verify registration
+    if /usr/local/cpanel/bin/show_appconfig 2>/dev/null | grep -q ultahost_dns; then
+        echo -e "${GREEN}Plugin registration verified${NC}"
+    else
+        echo -e "${YELLOW}Warning: Plugin registration may need manual verification${NC}"
+    fi
 fi
 
 # Clear plugins cache
