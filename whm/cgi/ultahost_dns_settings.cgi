@@ -342,11 +342,13 @@ print <<"HTML";
 
             <button type="submit" class="btn">Save Settings</button>
             <button type="button" class="btn" id="testBtn" style="background: #28a745; margin-left: 10px;">Test Connection</button>
+            <button type="button" class="btn" id="syncBtn" style="background: #17a2b8; margin-left: 10px;">Sync Zones from PowerDNS</button>
         </form>
 
         <div id="testResult" style="display: none; margin-top: 20px;"></div>
 
         <script>
+        // Test connection
         document.getElementById('testBtn').addEventListener('click', function() {
             var btn = this;
             var resultDiv = document.getElementById('testResult');
@@ -372,6 +374,43 @@ print <<"HTML";
                     resultDiv.style.display = 'block';
                     resultDiv.className = 'alert alert-warning';
                     resultDiv.innerHTML = '<strong>Error!</strong> Failed to test connection: ' + error.message;
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                });
+        });
+        
+        // Sync zones
+        document.getElementById('syncBtn').addEventListener('click', function() {
+            var btn = this;
+            var resultDiv = document.getElementById('testResult');
+            var originalText = btn.textContent;
+            
+            if (!confirm('This will sync all zones from PowerDNS to cPanel local DNS. Continue?')) {
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Syncing...';
+            resultDiv.style.display = 'none';
+            
+            fetch('sync_zones.cgi')
+                .then(response => response.json())
+                .then(data => {
+                    resultDiv.style.display = 'block';
+                    if (data.success) {
+                        resultDiv.className = 'alert alert-success';
+                        resultDiv.innerHTML = '<strong>Success!</strong> ' + data.message + '<br><pre style="max-height: 300px; overflow: auto; margin-top: 10px;">' + (data.output || '') + '</pre>';
+                    } else {
+                        resultDiv.className = 'alert alert-warning';
+                        resultDiv.innerHTML = '<strong>Completed with warnings!</strong> ' + data.message + '<br><pre style="max-height: 300px; overflow: auto; margin-top: 10px;">' + (data.output || '') + '</pre>';
+                    }
+                })
+                .catch(error => {
+                    resultDiv.style.display = 'block';
+                    resultDiv.className = 'alert alert-warning';
+                    resultDiv.innerHTML = '<strong>Error!</strong> Failed to sync zones: ' + error.message;
                 })
                 .finally(() => {
                     btn.disabled = false;

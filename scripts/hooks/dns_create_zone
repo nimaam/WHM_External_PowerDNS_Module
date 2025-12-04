@@ -52,10 +52,14 @@ def main():
         except Exception as e:
             logger.warning(f"Failed to apply DNS template {template_name}: {e}")
 
+        # Note: Zone is already created in cPanel local DNS by cPanel itself
+        # We just sync it to PowerDNS. The zone will appear in DNS Zone Manager
+        # because cPanel creates it locally first, then our hook syncs to PowerDNS.
         sys.exit(0)
     else:
         logger.error(f"Failed to create zone {zone_name} via PowerDNS API")
-        sys.exit(1)
+        # Don't fail the zone creation in cPanel, just log the error
+        sys.exit(0)
 
 
 if __name__ == "__main__":

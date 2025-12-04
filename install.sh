@@ -72,6 +72,7 @@ chmod 755 /usr/local/cpanel/scripts/ultahost_dns/*
 # Copy utilities
 echo -e "${YELLOW}Installing utilities...${NC}"
 cp "$SCRIPT_DIR/scripts/test_connection.py" /usr/local/cpanel/bin/ultahost_dns/
+cp "$SCRIPT_DIR/scripts/sync_zones.py" /usr/local/cpanel/bin/ultahost_dns/ 2>/dev/null || true
 chmod 755 /usr/local/cpanel/bin/ultahost_dns/*.py
 
 # Create WHM plugin registration
