@@ -31,8 +31,18 @@ def main():
     """Handle DNS zone listing."""
     logger = PluginLogger.get_logger()
 
+    # Debug: Log config status
+    try:
+        config = Config.load()
+        logger.debug(f"Config loaded: enabled={config.get('enabled')}, api_url={bool(config.get('api_url'))}, api_key={bool(config.get('api_key'))}")
+        logger.debug(f"Config file exists: {Config.CONFIG_FILE.exists()}")
+        logger.debug(f"Config file path: {Config.CONFIG_FILE}")
+    except Exception as e:
+        logger.error(f"Error loading config: {e}")
+
     if not Config.is_enabled():
         logger.debug("Ultahost DNS plugin is disabled, skipping hook")
+        # Don't exit - let default DNS handle it
         sys.exit(0)
 
     try:

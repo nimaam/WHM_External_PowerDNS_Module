@@ -61,8 +61,31 @@ class Config:
     @classmethod
     def is_enabled(cls):
         """Check if plugin is enabled."""
-        config = cls.load()
-        return config.get("enabled", False) and bool(config.get("api_url")) and bool(config.get("api_key"))
+        try:
+            config = cls.load()
+            enabled = config.get("enabled", False)
+            api_url = config.get("api_url", "").strip()
+            api_key = config.get("api_key", "").strip()
+            
+            # Handle boolean values (could be True, "true", 1, etc.)
+            if isinstance(enabled, str):
+                enabled = enabled.lower() in ("true", "1", "yes", "on")
+            
+            result = bool(enabled) and bool(api_url) and bool(api_key)
+            
+            # Debug logging
+            if not result:
+                import logging
+                logger = logging.getLogger("ultahost_dns")
+                logger.debug(f"Plugin disabled check: enabled={enabled} (type: {type(enabled)}), api_url={bool(api_url)}, api_key={bool(api_key)}")
+            
+            return result
+        except Exception as e:
+            # If there's an error loading config, assume disabled
+            import logging
+            logger = logging.getLogger("ultahost_dns")
+            logger.error(f"Error checking if plugin is enabled: {e}")
+            return False
 
     @classmethod
     def update(cls, api_url=None, api_key=None, enabled=None):
