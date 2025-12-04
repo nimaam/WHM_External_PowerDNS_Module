@@ -254,11 +254,25 @@ cat > /tmp/ultahost_dns_hooks.json << 'HOOKS_EOF'
 }
 HOOKS_EOF
 
+# Install Perl hook module (if it exists)
+if [ -f "$SCRIPT_DIR/src/ultahost_dns/hooks/DnsHooks.pm" ]; then
+    echo -e "${YELLOW}Installing Perl hook module...${NC}"
+    mkdir -p /usr/local/cpanel/Cpanel/Hooks
+    cp "$SCRIPT_DIR/src/ultahost_dns/hooks/DnsHooks.pm" /usr/local/cpanel/Cpanel/Hooks/UltahostDns.pm 2>/dev/null || true
+    echo -e "${GREEN}Perl hook module installed${NC}"
+fi
+
 # Register hooks individually using manage_hooks
 if [ -f "/usr/local/cpanel/bin/manage_hooks" ]; then
     echo -e "${YELLOW}Registering DNS hooks individually...${NC}"
     
-    # Register listzones hook
+    # Try registering Perl module first (if it exists)
+    if [ -f "/usr/local/cpanel/Cpanel/Hooks/UltahostDns.pm" ]; then
+        /usr/local/cpanel/bin/manage_hooks add module Cpanel::Hooks::UltahostDns::DnsHooks \
+            --category=Whostmgr --event=Api2::Dns::listzones --stage=pre 2>/dev/null || true
+    fi
+    
+    # Register listzones hook (script version as fallback)
     /usr/local/cpanel/bin/manage_hooks add script /usr/local/cpanel/scripts/ultahost_dns/dns_list_zones \
         --category=Whostmgr --event=Api2::Dns::listzones --stage=pre 2>/dev/null || true
     
