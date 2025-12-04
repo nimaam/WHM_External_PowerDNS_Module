@@ -73,7 +73,17 @@ chmod 755 /usr/local/cpanel/scripts/ultahost_dns/*
 echo -e "${YELLOW}Installing utilities...${NC}"
 cp "$SCRIPT_DIR/scripts/test_connection.py" /usr/local/cpanel/bin/ultahost_dns/
 cp "$SCRIPT_DIR/scripts/sync_zones.py" /usr/local/cpanel/bin/ultahost_dns/ 2>/dev/null || true
+cp "$SCRIPT_DIR/scripts/list_zones_api.py" /usr/local/cpanel/bin/ultahost_dns/ 2>/dev/null || true
+cp "$SCRIPT_DIR/scripts/fetch_zone_api.py" /usr/local/cpanel/bin/ultahost_dns/ 2>/dev/null || true
 chmod 755 /usr/local/cpanel/bin/ultahost_dns/*.py
+
+# Install dnsadmin plugin (if Perl modules exist)
+if [ -f "$SCRIPT_DIR/src/ultahost_dns/dnsadmin/Setup.pm" ]; then
+    echo -e "${YELLOW}Installing dnsadmin plugin...${NC}"
+    mkdir -p /usr/local/cpanel/Cpanel/Dnsadmin/Plugins
+    cp "$SCRIPT_DIR/src/ultahost_dns/dnsadmin/"*.pm /usr/local/cpanel/Cpanel/Dnsadmin/Plugins/ 2>/dev/null || true
+    echo -e "${GREEN}dnsadmin plugin installed${NC}"
+fi
 
 # Create WHM plugin registration
 echo -e "${YELLOW}Registering WHM plugin...${NC}"
