@@ -1,0 +1,36 @@
+[% PROCESS header %]
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Ultahost DNS Settings</h1>
+            <p class="lead">Configure PowerDNS v4 API integration for WHM/cPanel DNS management.</p>
+
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">PowerDNS v4 API Configuration</h3>
+                </div>
+                <div class="panel-body">
+                    [% form.render() %]
+                </div>
+            </div>
+
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Information</h3>
+                </div>
+                <div class="panel-body">
+                    <ul>
+                        <li><strong>API URL:</strong> Enter the full URL to your PowerDNS v4 API server (e.g., https://dns.example.com:8081)</li>
+                        <li><strong>API Key:</strong> Your PowerDNS v4 API authentication key</li>
+                        <li><strong>Enable Plugin:</strong> When enabled, this plugin will replace the default DNS module for all DNS operations</li>
+                    </ul>
+                    <p><strong>Note:</strong> After enabling, all DNS zone and record management will be handled through PowerDNS v4 API instead of the default cPanel/WHM DNS module.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+[% PROCESS footer %]
+

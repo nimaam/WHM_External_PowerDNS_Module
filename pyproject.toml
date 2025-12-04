@@ -1,0 +1,120 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ultahost-dns"
+version = "1.0.0"
+description = "WHM/cPanel plugin for PowerDNS v4 API integration"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[tool.coverage.report]
+omit = [
+    "manage.py",
+    "**/migrations/*",
+    "**/tests/*",
+    "**/management/commands/*",
+]
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+target-version = "py312"
+exclude = [
+    "__old__",
+    ".gitlab",
+    ".vscode",
+    ".venv",
+    "venv",
+    "*/migrations/*",
+]
+
+[tool.ruff.lint]
+preview = true
+select = [
+    "YTT",
+    "ASYNC",
+    "S",
+    "BLE",
+    "B",
+    "A",
+    "COM",
+    "C4",
+    "DTZ",
+    "DJ008",
+    "DJ012",
+    "DJ013",
+    "EM",
+    "INT",
+    "LOG",
+    "G",
+    "INP",
+    "PIE",
+    "T20",
+    "PYI",
+    "Q",
+    "RSE",
+    "RET",
+    "SLF",
+    "SIM",
+    "SLOT",
+    "TID",
+    "PTH",
+    "FLY",
+    "I",
+    "C90",
+    "N",
+    "PERF",
+    "E",
+    "W",
+    "DOC",
+    "F",
+    "PGH",
+    "PL",
+    "PLE",
+    "PLR",
+    "PLW",
+    "UP",
+    "FURB",
+    "RUF",
+    "TRY",
+]
+ignore = [
+    "PTH118",
+    "PTH123",
+    "PLR0904",
+    "PLR0913",
+    "PLR0914",
+    "PLR0917",
+    "PLC1901",
+    "PLR2004",
+    "PLR6301",
+    "S311",
+    "EM101",
+    "BLE001",
+    "RUF012",
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-width = 4
+line-ending = "auto"
+preview = true
+
+[tool.isort]
+profile = "black"
+

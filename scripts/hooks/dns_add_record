@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""Hook script for adding DNS records."""
+
+import sys
+from pathlib import Path
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
+from ultahost_dns.config import Config
+from ultahost_dns.logger import PluginLogger
+from ultahost_dns.permissions import Permissions
+from ultahost_dns.powerdns_client import PowerDNSClient
+
+
+def main():
+    """Handle DNS record addition."""
+    logger = PluginLogger.get_logger()
+
+    if not Config.is_enabled():
+        logger.debug("Ultahost DNS plugin is disabled, skipping hook")
+        sys.exit(0)
+
+    # Parse arguments from cPanel
+    # Format: zone_name name type content ttl [priority]
+    if len(sys.argv) < 5:
+        logger.error("Invalid arguments for dns_add_record hook")
+        sys.exit(1)
+
+    zone_name = sys.argv[1]
+    name = sys.argv[2]
+    record_type = sys.argv[3]
+    content = sys.argv[4]
+    ttl = int(sys.argv[5]) if len(sys.argv) > 5 and sys.argv[5].isdigit() else 3600
+    priority = int(sys.argv[6]) if len(sys.argv) > 6 and sys.argv[6].isdigit() else None
+    username = sys.argv[7] if len(sys.argv) > 7 else "root"
+
+    logger.info(f"Adding DNS record: {name} {record_type} {content} to {zone_name} (user: {username})")
+
+    # Check permissions
+    if not Permissions.can_manage_zone(username, zone_name):
+        logger.error(f"User {username} does not have permission to modify zone {zone_name}")
+        sys.exit(1)
+
+    # Add record to PowerDNS
+    client = PowerDNSClient()
+    if client.add_record(zone_name, name, record_type, content, ttl, priority):
+        logger.info(f"Successfully added record {name} {record_type} via PowerDNS API")
+        sys.exit(0)
+    else:
+        logger.error(f"Failed to add record {name} {record_type} via PowerDNS API")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+

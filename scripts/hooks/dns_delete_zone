@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""Hook script for DNS zone deletion."""
+
+import sys
+from pathlib import Path
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
+from ultahost_dns.config import Config
+from ultahost_dns.logger import PluginLogger
+from ultahost_dns.permissions import Permissions
+from ultahost_dns.powerdns_client import PowerDNSClient
+
+
+def main():
+    """Handle DNS zone deletion."""
+    logger = PluginLogger.get_logger()
+
+    if not Config.is_enabled():
+        logger.debug("Ultahost DNS plugin is disabled, skipping hook")
+        sys.exit(0)
+
+    # Parse arguments from cPanel
+    if len(sys.argv) < 2:
+        logger.error("Invalid arguments for dns_delete_zone hook")
+        sys.exit(1)
+
+    zone_name = sys.argv[1]
+    username = sys.argv[2] if len(sys.argv) > 2 else "root"
+
+    logger.info(f"Deleting DNS zone: {zone_name} (user: {username})")
+
+    # Check permissions
+    if not Permissions.can_manage_zone(username, zone_name):
+        logger.error(f"User {username} does not have permission to delete zone {zone_name}")
+        sys.exit(1)
+
+    # Delete zone from PowerDNS
+    client = PowerDNSClient()
+    if client.delete_zone(zone_name):
+        logger.info(f"Successfully deleted zone {zone_name} via PowerDNS API")
+        sys.exit(0)
+    else:
+        logger.error(f"Failed to delete zone {zone_name} via PowerDNS API")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+

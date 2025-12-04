@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""Hook script for DNS zone creation."""
+
+import sys
+from pathlib import Path
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
+from ultahost_dns.config import Config
+from ultahost_dns.dns_template import DNSTemplate
+from ultahost_dns.logger import PluginLogger
+from ultahost_dns.permissions import Permissions
+from ultahost_dns.powerdns_client import PowerDNSClient
+
+
+def main():
+    """Handle DNS zone creation."""
+    logger = PluginLogger.get_logger()
+
+    if not Config.is_enabled():
+        logger.debug("Ultahost DNS plugin is disabled, skipping hook")
+        sys.exit(0)
+
+    # Parse arguments from cPanel
+    # Format: domain zone_name [template_name]
+    if len(sys.argv) < 3:
+        logger.error("Invalid arguments for dns_create_zone hook")
+        sys.exit(1)
+
+    domain = sys.argv[1]
+    zone_name = sys.argv[2]
+    template_name = sys.argv[3] if len(sys.argv) > 3 else "default"
+    username = sys.argv[4] if len(sys.argv) > 4 else "root"
+
+    logger.info(f"Creating DNS zone: {zone_name} for domain: {domain} (user: {username}, template: {template_name})")
+
+    # Check permissions
+    if not Permissions.can_manage_zone(username, zone_name):
+        logger.error(f"User {username} does not have permission to create zone {zone_name}")
+        sys.exit(1)
+
+    # Create zone in PowerDNS
+    client = PowerDNSClient()
+    if client.create_zone(zone_name):
+        logger.info(f"Successfully created zone {zone_name} via PowerDNS API")
+
+        # Apply DNS template
+        try:
+            DNSTemplate.apply_template_to_zone(client, zone_name, template_name)
+            logger.info(f"Applied DNS template {template_name} to zone {zone_name}")
+        except Exception as e:
+            logger.warning(f"Failed to apply DNS template {template_name}: {e}")
+
+        sys.exit(0)
+    else:
+        logger.error(f"Failed to create zone {zone_name} via PowerDNS API")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+
