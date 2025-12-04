@@ -39,21 +39,42 @@ def main():
         client = PowerDNSClient()
         zones = client.list_zones()
 
-        # Output zones in a format cPanel can understand
-        # This will be read by cPanel's DNS module
+        # For API2 hooks, we need to output JSON that cPanel can parse
+        # cPanel API2 expects a specific format
+        result = {
+            "status": 1,
+            "statusmsg": "OK",
+            "data": {
+                "zones": []
+            }
+        }
+
         for zone in zones:
             zone_name = zone.get("name", "").rstrip(".")
             if zone_name:
-                print(zone_name)
+                result["data"]["zones"].append({
+                    "domain": zone_name,
+                    "zone": zone_name,
+                })
 
+        # Output JSON for API2
+        print(json.dumps(result))
         logger.info(f"Listed {len(zones)} zones from PowerDNS API")
+        
+        # Exit with 0 to indicate we handled it
         sys.exit(0)
 
     except Exception as e:
         logger.error(f"Exception listing zones: {e}", exc_info=True)
-        sys.exit(0)
+        # Output error in API2 format
+        error_result = {
+            "status": 0,
+            "statusmsg": f"Error: {str(e)}",
+            "data": {}
+        }
+        print(json.dumps(error_result))
+        sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
-

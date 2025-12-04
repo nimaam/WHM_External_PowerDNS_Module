@@ -37,12 +37,28 @@ def main():
 
     # Get zone name from environment or arguments
     zone_name = os.environ.get("zone", "") or os.environ.get("ZONE", "")
+    if not zone_name:
+        # Try reading from stdin (JSON format from API2)
+        try:
+            stdin_data = sys.stdin.read()
+            if stdin_data:
+                data = json.loads(stdin_data)
+                zone_name = data.get("zone", data.get("domain", ""))
+        except (json.JSONDecodeError, ValueError):
+            pass
+
     if not zone_name and len(sys.argv) >= 2:
         zone_name = sys.argv[1]
 
     if not zone_name:
         logger.error("No zone name provided for dns_fetch_zone hook")
-        sys.exit(0)
+        error_result = {
+            "status": 0,
+            "statusmsg": "No zone name provided",
+            "data": {}
+        }
+        print(json.dumps(error_result))
+        sys.exit(1)
 
     try:
         client = PowerDNSClient()
@@ -50,33 +66,68 @@ def main():
 
         if not zone_data:
             logger.warning(f"Zone {zone_name} not found in PowerDNS")
-            sys.exit(0)
+            error_result = {
+                "status": 0,
+                "statusmsg": f"Zone {zone_name} not found",
+                "data": {}
+            }
+            print(json.dumps(error_result))
+            sys.exit(1)
 
         # Get records
         records = client.get_records(zone_name)
 
-        # Output in a format cPanel can understand
-        # Format: name TTL IN type content
+        # Format for API2 response
+        result = {
+            "status": 1,
+            "statusmsg": "OK",
+            "data": {
+                "zone": zone_name.rstrip("."),
+                "records": []
+            }
+        }
+
         for record in records:
             name = record["name"].rstrip(".")
             ttl = record.get("ttl", 3600)
             record_type = record["type"]
             content = record["content"]
 
-            # Format for cPanel
+            # Format for cPanel API2
             if name == zone_name.rstrip("."):
                 name = "@"
 
-            print(f"{name}\t{ttl}\tIN\t{record_type}\t{content}")
+            record_data = {
+                "name": name,
+                "ttl": ttl,
+                "type": record_type,
+                "record": content,
+            }
 
+            # Handle MX and SRV priority
+            if record_type in ["MX", "SRV"] and " " in content:
+                parts = content.split(" ", 1)
+                if parts[0].isdigit():
+                    record_data["priority"] = int(parts[0])
+                    record_data["record"] = parts[1]
+
+            result["data"]["records"].append(record_data)
+
+        # Output JSON for API2
+        print(json.dumps(result))
         logger.info(f"Fetched zone {zone_name} from PowerDNS API with {len(records)} records")
         sys.exit(0)
 
     except Exception as e:
         logger.error(f"Exception fetching zone {zone_name}: {e}", exc_info=True)
-        sys.exit(0)
+        error_result = {
+            "status": 0,
+            "statusmsg": f"Error: {str(e)}",
+            "data": {}
+        }
+        print(json.dumps(error_result))
+        sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
-
