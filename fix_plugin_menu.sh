@@ -32,12 +32,13 @@ mkdir -p /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns
 
 # Create .conf file for register_appconfig
 cat > /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf << 'EOF'
-name=Ultahost DNS
-version=1.0.0
-description=PowerDNS v4 API integration for WHM/cPanel DNS management
-category=dns
+name=ultahost_dns
+service=whostmgr
+user=root
 url=/cgi/ultahost_dns/ultahost_dns_settings.cgi
-requires_root=1
+acls=all
+displayname=Ultahost DNS
+description=PowerDNS v4 API integration for WHM/cPanel DNS management
 EOF
 chmod 644 /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
 chown root:root /usr/local/cpanel/whostmgr/docroot/cgi/ultahost_dns/ultahost_dns.conf
